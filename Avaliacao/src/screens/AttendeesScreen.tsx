@@ -14,7 +14,6 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
 import { api } from "../services/api";
 import debounce from "lodash.debounce";
-import Toast from "react-native-root-toast";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Attendees">;
 
