@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -14,79 +14,84 @@ import Toast from "react-native-root-toast";
 type Props = NativeStackScreenProps<RootStackParamList, "Checkin">;
 
 export default function CheckinScreen({ route, navigation }: Props) {
-  const { eventId, attendeeId, name, onSuccess } = route.params;
+  const {
+    eventId,
+    attendeeId,
+    name,
+    checkedInAt: initialCheckedInAt,
+    onSuccess,
+  } = route.params;
 
+  const [checkedInAt, setCheckedInAt] = useState<string | null | undefined>(
+    route.params.checkedInAt
+  );
   const [loading, setLoading] = useState(false);
-  const [checkedInAt, setCheckedInAt] = useState<string | null>(null);
-  const [undoTimeout, setUndoTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [undoAvailable, setUndoAvailable] = useState(false);
 
-  const handleCheckin = async () => {
+  const toggleCheckin = async () => {
     setLoading(true);
-    try {
-      const res = await api.post(`/events/${eventId}/checkin`, { attendeeId });
-      const time = res.data.checkedInAt;
-      setCheckedInAt(time);
 
-      setUndoAvailable(true);
-      const timeout = setTimeout(() => setUndoAvailable(false), 5000);
-      setUndoTimeout(timeout);
-
-      Toast.show(`${name} fez check-in!`, { duration: Toast.durations.SHORT });
-      onSuccess?.();
-    } catch (err: any) {
-      if (err.response?.status === 409) {
-        const time = err.response.data.checkedInAt;
-        const localTime = new Date(time).toLocaleTimeString();
-        Toast.show(`${name} já presente desde ${localTime}`, {
+    if (!checkedInAt) {
+      try {
+        const res = await api.post(`/events/${eventId}/checkin`, {
+          attendeeId,
+        });
+        const time = res.data.checkedInAt;
+        setCheckedInAt(time);
+        Toast.show(`${name} fez check-in!`, {
           duration: Toast.durations.SHORT,
         });
-      } else {
-        Toast.show("Erro ao realizar check-in.", {
-          duration: Toast.durations.SHORT,
-        });
+        onSuccess?.(true);
+      } catch (err: any) {
+        if (err.response?.status === 409) {
+          const time = err.response.data.checkedInAt;
+          setCheckedInAt(time);
+          const localTime = new Date(time).toLocaleTimeString();
+          Toast.show(`${name} já presente desde ${localTime}`, {
+            duration: Toast.durations.SHORT,
+          });
+          onSuccess?.(true);
+        } else {
+          Toast.show("Erro ao realizar check-in.", {
+            duration: Toast.durations.SHORT,
+          });
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
+    } else {
+      try {
+        await api.post(`/events/${eventId}/undo-checkin`, { attendeeId });
+      } catch {
+        // se falhar, desfaz no front
+      }
+      setCheckedInAt(null);
+      Toast.show(`Check-in de ${name} desfeito`, {
+        duration: Toast.durations.SHORT,
+      });
+      onSuccess?.(false);
       setLoading(false);
     }
   };
-
-  const handleUndo = () => {
-    if (undoTimeout) clearTimeout(undoTimeout);
-    setCheckedInAt(null);
-    setUndoAvailable(false);
-    Toast.show(`Check-in de ${name} desfeito`, {
-      duration: Toast.durations.SHORT,
-    });
-    onSuccess?.();
-  };
-
-  useEffect(() => {
-    handleCheckin();
-    return () => {
-      if (undoTimeout) clearTimeout(undoTimeout);
-    };
-  }, []);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{name}</Text>
 
       {loading && <ActivityIndicator size="large" />}
-      {checkedInAt && !loading && (
-        <>
-          <Text>
-            Check-in realizado às {new Date(checkedInAt).toLocaleTimeString()}
-          </Text>
-          {undoAvailable && (
-            <Button
-              title="Desfazer"
-              onPress={handleUndo}
-              accessibilityLabel="Desfazer check-in"
-            />
-          )}
-        </>
-      )}
+
+      <Text style={{ marginVertical: 10 }}>
+        Status: {checkedInAt ? "Presente ✅" : "Ausente ❌"}
+      </Text>
+
+      <Button
+        title={checkedInAt ? "Desfazer Check-in" : "Fazer Check-in"}
+        onPress={toggleCheckin}
+        accessibilityLabel={
+          checkedInAt ? "Desfazer check-in" : "Fazer check-in"
+        }
+      />
+
+      <View style={{ height: 20 }} />
 
       <Button
         title="Fechar"

@@ -12,7 +12,8 @@ export type RootStackParamList = {
     eventId: string;
     attendeeId: string;
     name: string;
-    onSuccess?: () => void;
+    checkedInAt?: string | null; 
+    onSuccess?: (isCheckedIn?: boolean) => void;
   };
 };
 

@@ -107,15 +107,19 @@ export default function AttendeesScreen({ route, navigation }: Props) {
       eventId,
       attendeeId: attendee.id,
       name: attendee.name,
-      onSuccess: () => {
+      checkedInAt: attendee.checkedInAt, // passa o estado atual
+      onSuccess: (isCheckedIn?: boolean) => {
         setAttendees((prev) =>
           prev.map((a) =>
             a.id === attendee.id
-              ? { ...a, checkedInAt: new Date().toISOString() }
+              ? {
+                  ...a,
+                  checkedInAt: isCheckedIn ? new Date().toISOString() : null,
+                }
               : a
           )
         );
-        onCheckin?.(1);
+        onCheckin?.(isCheckedIn ? 1 : -1);
       },
     });
   };
