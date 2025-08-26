@@ -15,12 +15,6 @@ TOKEN=seu_token_aqui
 
 > O `TOKEN` será usado em todas as requisições à API.
 
-No `api.ts`:
-
-```ts
-import { BASE_URL } from "@env"; // ou process.env.BASE_URL
-```
-
 ---
 
 ## 2️⃣ Instalar dependências
@@ -42,4 +36,4 @@ npx expo start
 ```
 
 * Abra no **simulador** ou no **celular real** usando o app Expo Go
-* Teste os fluxos: **Evento → Participantes → Check-in / Scanner / Offline**
+* Teste os fluxos: **Evento → Participantes → Check-in **
