@@ -22,53 +22,34 @@ export default function CheckinScreen({ route, navigation }: Props) {
     onSuccess,
   } = route.params;
 
-  const [checkedInAt, setCheckedInAt] = useState<string | null | undefined>(
-    route.params.checkedInAt
-  );
   const [loading, setLoading] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(!!initialCheckedInAt);
 
-  const toggleCheckin = async () => {
+  const handleCheckin = async () => {
+    if (checkedIn) return;
+
     setLoading(true);
-
-    if (!checkedInAt) {
-      try {
-        const res = await api.post(`/events/${eventId}/checkin`, {
-          attendeeId,
-        });
-        const time = res.data.checkedInAt;
-        setCheckedInAt(time);
-        Toast.show(`${name} fez check-in!`, {
+    try {
+      const res = await api.post(`/events/${eventId}/checkin`, { attendeeId });
+      setCheckedIn(true);
+      Toast.show(`${name} fez check-in!`, { duration: Toast.durations.SHORT });
+      onSuccess?.(true);
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setCheckedIn(true);
+        const localTime = new Date(
+          err.response.data.checkedInAt
+        ).toLocaleTimeString();
+        Toast.show(`${name} já presente desde ${localTime}`, {
           duration: Toast.durations.SHORT,
         });
         onSuccess?.(true);
-      } catch (err: any) {
-        if (err.response?.status === 409) {
-          const time = err.response.data.checkedInAt;
-          setCheckedInAt(time);
-          const localTime = new Date(time).toLocaleTimeString();
-          Toast.show(`${name} já presente desde ${localTime}`, {
-            duration: Toast.durations.SHORT,
-          });
-          onSuccess?.(true);
-        } else {
-          Toast.show("Erro ao realizar check-in.", {
-            duration: Toast.durations.SHORT,
-          });
-        }
-      } finally {
-        setLoading(false);
+      } else {
+        Toast.show("Erro ao realizar check-in.", {
+          duration: Toast.durations.SHORT,
+        });
       }
-    } else {
-      try {
-        await api.post(`/events/${eventId}/undo-checkin`, { attendeeId });
-      } catch {
-        // se falhar, desfaz no front
-      }
-      setCheckedInAt(null);
-      Toast.show(`Check-in de ${name} desfeito`, {
-        duration: Toast.durations.SHORT,
-      });
-      onSuccess?.(false);
+    } finally {
       setLoading(false);
     }
   };
@@ -80,16 +61,16 @@ export default function CheckinScreen({ route, navigation }: Props) {
       {loading && <ActivityIndicator size="large" />}
 
       <Text style={{ marginVertical: 10 }}>
-        Status: {checkedInAt ? "Presente ✅" : "Ausente ❌"}
+        Status: {checkedIn ? "Presente ✅" : "Ausente ❌"}
       </Text>
 
-      <Button
-        title={checkedInAt ? "Desfazer Check-in" : "Fazer Check-in"}
-        onPress={toggleCheckin}
-        accessibilityLabel={
-          checkedInAt ? "Desfazer check-in" : "Fazer check-in"
-        }
-      />
+      {!checkedIn && (
+        <Button
+          title="Fazer Check-in"
+          onPress={handleCheckin}
+          accessibilityLabel="Fazer check-in"
+        />
+      )}
 
       <View style={{ height: 20 }} />
 

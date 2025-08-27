@@ -1,39 +1,63 @@
-# Check-in App (Expo React Native + TypeScript)
+# App de Check-in de Eventos
 
-Aplicativo mobile para operadores de portaria realizarem check-in de participantes em eventos, com QR Scanner e suporte offline.
+Aplicativo mobile Expo com React Native e TypeScript para gerenciar eventos e check-ins de participantes.
 
 ---
 
-## 1️⃣ Configuração do `.env`
+## 1. Configuração do .env
 
-Crie um arquivo `.env` na raiz do projeto:
+Crie um arquivo .env na raiz do projeto e adicione as variáveis:
 
-```
-BASE_URL=https://api.exemplo.com
+env
+PORT=5044
 TOKEN=seu_token_aqui
-```
+PORT: porta da API (Padrão 5044)
 
-> O `TOKEN` será usado em todas as requisições à API.
+TOKEN: token de autenticação da API
 
 ---
 
-## 2️⃣ Instalar dependências
+## 2. Instalando dependências
 
-```bash
+No terminal, execute:
+
+bash
+Copiar código
 npm install
-expo install react-native-gesture-handler react-native-reanimated react-native-root-toast
-expo install expo-camera expo-barcode-scanner expo-haptics
-expo install @react-native-async-storage/async-storage
-npm install axios lodash.debounce @react-navigation/native @react-navigation/native-stack
-```
 
 ---
 
-## 3️⃣ Rodar o app
+## 3. Rodando o projeto
 
-```bash
+Inicie o Expo:
+
+bash
+Copiar código
 npx expo start
-```
+Depois abra o app no seu dispositivo ou emulador usando o QR code exibido.
 
-* Abra no **simulador** ou no **celular real** usando o app Expo Go
-* Teste os fluxos: **Evento → Participantes → Check-in **
+---
+
+## 4. Estrutura do Projeto
+
+App.tsx: configuração do NavigationContainer e das rotas.
+
+src/screens/EventScreen.tsx: lista de eventos, mostra stats (presentes/ausentes).
+
+src/screens/AttendeesScreen.tsx: lista de participantes com filtro e busca.
+
+src/screens/CheckinScreen.tsx: tela de check-in (somente marcar como presente).
+
+src/services/api.ts: cliente Axios para comunicar com a API.
+
+server.js (ou index.js): API em Node.js/Express com endpoints para eventos e participantes.
+
+---
+
+## 5. Notas
+
+O check-in só pode ser feito uma vez; não há opção de desfazer.
+
+Stats de presentes/ausentes são atualizados automaticamente ao fazer check-in.
+
+Se estiver usando a API em memória, reiniciar o servidor reseta os check-ins.

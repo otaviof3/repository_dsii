@@ -39,9 +39,12 @@ export default function AttendeesScreen({ route, navigation }: Props) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Fetch attendees do backend ---
   const fetchAttendees = useCallback(
-    async (pageNum: number = 1, searchTerm: string = search, append = false) => {
+    async (
+      pageNum: number = 1,
+      searchTerm: string = search,
+      append = false
+    ) => {
       if (!append) setLoading(true);
       setError(null);
 
@@ -54,11 +57,9 @@ export default function AttendeesScreen({ route, navigation }: Props) {
         const totalItems: number = res.data.total;
         setTotal(totalItems);
 
-        // --- Merge para não sobrescrever alterações locais ---
         setAttendees((prev) => {
           if (append) return [...prev, ...data];
 
-          // mapear cada attendee retornado pelo backend
           const prevMap = new Map(prev.map((a) => [a.id, a]));
           return data.map((a) => prevMap.get(a.id) || a);
         });
@@ -96,7 +97,6 @@ export default function AttendeesScreen({ route, navigation }: Props) {
     fetchAttendees(page + 1, search, true);
   };
 
-  // --- Toggle check-in ---
   const handleCheckin = (attendee: Attendee) => {
     navigation.navigate("Checkin", {
       eventId,
@@ -115,7 +115,7 @@ export default function AttendeesScreen({ route, navigation }: Props) {
           )
         );
         if (typeof isCheckedIn === "boolean") {
-          onCheckin?.(isCheckedIn ? 1 : -1); // atualiza stats do EventScreen
+          onCheckin?.(isCheckedIn ? 1 : -1);
         }
       },
     });

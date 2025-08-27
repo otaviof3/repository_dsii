@@ -1,8 +1,8 @@
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import EventScreen, { EventDetail } from "./src/screens/EventScreen";
-import AttendeesScreen, { Attendee } from "./src/screens/AttendeesScreen";
+import EventScreen from "./src/screens/EventScreen";
+import AttendeesScreen from "./src/screens/AttendeesScreen";
 import CheckinScreen from "./src/screens/CheckinScreen";
 
 export type RootStackParamList = {
@@ -12,7 +12,7 @@ export type RootStackParamList = {
     eventId: string;
     attendeeId: string;
     name: string;
-    checkedInAt?: string | null; 
+    checkedInAt?: string | null;
     onSuccess?: (isCheckedIn?: boolean) => void;
   };
 };

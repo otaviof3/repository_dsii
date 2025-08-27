@@ -28,7 +28,6 @@ export default function EventScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- Buscar todos os eventos ---
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -47,12 +46,10 @@ export default function EventScreen({ navigation }: Props) {
     fetchEvents();
   }, [fetchEvents]);
 
-  // --- Atualiza um evento específico após check-in ---
   const handleCheckinUpdate = async (eventId: string) => {
     try {
-      // Buscar participantes novamente para calcular stats atualizados
       const res = await api.get(`/events/${eventId}/attendees`, {
-        params: { page: 1, limit: 1000 }, // pega todos para stats
+        params: { page: 1, limit: 1000 },
       });
       const attendees = res.data.data;
       const total = attendees.length;
@@ -98,8 +95,8 @@ export default function EventScreen({ navigation }: Props) {
       </Text>
       <Text>{item.location}</Text>
       <Text>
-        Total: {item.stats.total} | Presentes: {item.stats.checkedIn} | Ausentes:{" "}
-        {item.stats.absent}
+        Total: {item.stats.total} | Presentes: {item.stats.checkedIn} |
+        Ausentes: {item.stats.absent}
       </Text>
     </TouchableOpacity>
   );
