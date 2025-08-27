@@ -4,6 +4,8 @@ import {
   Text,
   Button,
   ActivityIndicator,
+  FlatList,
+  TouchableOpacity,
   StyleSheet,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -22,39 +24,43 @@ export type EventDetail = {
 };
 
 export default function EventScreen({ navigation }: Props) {
-  const [event, setEvent] = useState<EventDetail | null>(null);
+  const [events, setEvents] = useState<EventDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchEvent = useCallback(async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<EventDetail>("/events/evt_123");
-      setEvent(res.data);
+      const res = await api.get<EventDetail[]>("/events");
+      setEvents(res.data);
     } catch (err: any) {
       console.error(err);
-      setError("Não foi possível carregar o evento.");
+      setError("Não foi possível carregar os eventos.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchEvent();
-  }, [fetchEvent]);
+    fetchEvents();
+  }, [fetchEvents]);
 
-  const handleUpdateStats = (checkedInDelta: number) => {
-    if (event) {
-      setEvent({
-        ...event,
-        stats: {
-          total: event.stats.total,
-          checkedIn: event.stats.checkedIn + checkedInDelta,
-          absent: event.stats.absent - checkedInDelta,
-        },
-      });
-    }
+  const handleUpdateStats = (eventId: string, checkedInDelta: number) => {
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === eventId
+          ? {
+              ...e,
+              stats: {
+                total: e.stats.total,
+                checkedIn: e.stats.checkedIn + checkedInDelta,
+                absent: e.stats.absent - checkedInDelta,
+              },
+            }
+          : e
+      )
+    );
   };
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
@@ -62,44 +68,49 @@ export default function EventScreen({ navigation }: Props) {
     return (
       <View style={styles.center}>
         <Text>{error}</Text>
-        <Button
-          title="Tentar novamente"
-          onPress={fetchEvent}
-          accessibilityLabel="Retry loading event"
-        />
+        <Button title="Tentar novamente" onPress={fetchEvents} />
       </View>
     );
-  if (!event) return <Text>Evento não encontrado</Text>;
+
+  const renderItem = ({ item }: { item: EventDetail }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() =>
+        navigation.navigate("Attendees", {
+          eventId: item.id,
+          onCheckin: (delta) => handleUpdateStats(item.id, delta),
+        })
+      }
+    >
+      <Text style={styles.title}>{item.title}</Text>
+      <Text>
+        {item.startsAt} → {item.endsAt}
+      </Text>
+      <Text>{item.location}</Text>
+      <Text>
+        Total: {item.stats.total} | Presentes: {item.stats.checkedIn} |
+        Ausentes: {item.stats.absent}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{event.title}</Text>
-      <Text>
-        {event.startsAt} → {event.endsAt}
-      </Text>
-      <Text>{event.location}</Text>
-      <View style={styles.stats}>
-        <Text>Total: {event.stats.total}</Text>
-        <Text>Presentes: {event.stats.checkedIn}</Text>
-        <Text>Ausentes: {event.stats.absent}</Text>
-      </View>
-      <Button
-        title="Ver participantes"
-        onPress={() =>
-          navigation.navigate("Attendees", {
-            eventId: event.id,
-            onCheckin: handleUpdateStats,
-          })
-        }
-        accessibilityLabel="Ver lista de participantes"
-      />
-    </View>
+    <FlatList
+      data={events}
+      keyExtractor={(item) => item.id}
+      renderItem={renderItem}
+      contentContainerStyle={{ padding: 20 }}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
-  stats: { marginVertical: 20 },
+  item: {
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    backgroundColor: "#e2e8f0",
+  },
+  title: { fontSize: 16, fontWeight: "bold", marginBottom: 5 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
