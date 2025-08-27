@@ -2,11 +2,11 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
-  Button,
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
   StyleSheet,
+  Button,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../App";
@@ -28,6 +28,7 @@ export default function EventScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Buscar todos os eventos ---
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -46,21 +47,30 @@ export default function EventScreen({ navigation }: Props) {
     fetchEvents();
   }, [fetchEvents]);
 
-  const handleUpdateStats = (eventId: string, checkedInDelta: number) => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === eventId
-          ? {
-              ...e,
-              stats: {
-                total: e.stats.total,
-                checkedIn: e.stats.checkedIn + checkedInDelta,
-                absent: e.stats.absent - checkedInDelta,
-              },
-            }
-          : e
-      )
-    );
+  // --- Atualiza um evento específico após check-in ---
+  const handleCheckinUpdate = async (eventId: string) => {
+    try {
+      // Buscar participantes novamente para calcular stats atualizados
+      const res = await api.get(`/events/${eventId}/attendees`, {
+        params: { page: 1, limit: 1000 }, // pega todos para stats
+      });
+      const attendees = res.data.data;
+      const total = attendees.length;
+      const checkedIn = attendees.filter((a: any) => !!a.checkedInAt).length;
+
+      setEvents((prev) =>
+        prev.map((e) =>
+          e.id === eventId
+            ? {
+                ...e,
+                stats: { total, checkedIn, absent: total - checkedIn },
+              }
+            : e
+        )
+      );
+    } catch (err) {
+      console.error("Erro ao atualizar stats do evento", err);
+    }
   };
 
   if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
@@ -78,7 +88,7 @@ export default function EventScreen({ navigation }: Props) {
       onPress={() =>
         navigation.navigate("Attendees", {
           eventId: item.id,
-          onCheckin: (delta) => handleUpdateStats(item.id, delta),
+          onCheckin: () => handleCheckinUpdate(item.id),
         })
       }
     >
@@ -88,8 +98,8 @@ export default function EventScreen({ navigation }: Props) {
       </Text>
       <Text>{item.location}</Text>
       <Text>
-        Total: {item.stats.total} | Presentes: {item.stats.checkedIn} |
-        Ausentes: {item.stats.absent}
+        Total: {item.stats.total} | Presentes: {item.stats.checkedIn} | Ausentes:{" "}
+        {item.stats.absent}
       </Text>
     </TouchableOpacity>
   );

@@ -26,30 +26,22 @@ export type Attendee = {
 };
 
 export default function AttendeesScreen({ route, navigation }: Props) {
-  const { eventId, onCheckin } = route.params as {
-    eventId: string;
-    onCheckin?: (delta: number) => void;
-  };
+  const { eventId, onCheckin } = route.params;
 
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [total, setTotal] = useState(0);
-
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "present" | "absent">("all");
-
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Fetch attendees do backend ---
   const fetchAttendees = useCallback(
-    async (
-      pageNum: number = 1,
-      searchTerm: string = search,
-      append = false
-    ) => {
+    async (pageNum: number = 1, searchTerm: string = search, append = false) => {
       if (!append) setLoading(true);
       setError(null);
 
@@ -60,14 +52,16 @@ export default function AttendeesScreen({ route, navigation }: Props) {
 
         const data: Attendee[] = res.data.data;
         const totalItems: number = res.data.total;
-
         setTotal(totalItems);
 
-        if (append) {
-          setAttendees((prev) => [...prev, ...data]);
-        } else {
-          setAttendees(data);
-        }
+        // --- Merge para não sobrescrever alterações locais ---
+        setAttendees((prev) => {
+          if (append) return [...prev, ...data];
+
+          // mapear cada attendee retornado pelo backend
+          const prevMap = new Map(prev.map((a) => [a.id, a]));
+          return data.map((a) => prevMap.get(a.id) || a);
+        });
 
         setPage(pageNum);
       } catch (err: any) {
@@ -102,12 +96,13 @@ export default function AttendeesScreen({ route, navigation }: Props) {
     fetchAttendees(page + 1, search, true);
   };
 
+  // --- Toggle check-in ---
   const handleCheckin = (attendee: Attendee) => {
     navigation.navigate("Checkin", {
       eventId,
       attendeeId: attendee.id,
       name: attendee.name,
-      checkedInAt: attendee.checkedInAt, // passa o estado atual
+      checkedInAt: attendee.checkedInAt,
       onSuccess: (isCheckedIn?: boolean) => {
         setAttendees((prev) =>
           prev.map((a) =>
@@ -119,7 +114,9 @@ export default function AttendeesScreen({ route, navigation }: Props) {
               : a
           )
         );
-        onCheckin?.(isCheckedIn ? 1 : -1);
+        if (typeof isCheckedIn === "boolean") {
+          onCheckin?.(isCheckedIn ? 1 : -1); // atualiza stats do EventScreen
+        }
       },
     });
   };
@@ -153,15 +150,12 @@ export default function AttendeesScreen({ route, navigation }: Props) {
 
   if (loading && !refreshing)
     return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+
   if (error)
     return (
       <View style={styles.center}>
         <Text>{error}</Text>
-        <Button
-          title="Tentar novamente"
-          onPress={() => fetchAttendees(1)}
-          accessibilityLabel="Retry loading participants"
-        />
+        <Button title="Tentar novamente" onPress={() => fetchAttendees(1)} />
       </View>
     );
 
@@ -183,7 +177,6 @@ export default function AttendeesScreen({ route, navigation }: Props) {
         value={search}
         onChangeText={setSearch}
         style={styles.search}
-        accessibilityLabel="Campo de busca de participantes"
       />
 
       <View style={styles.filters}>
@@ -192,7 +185,6 @@ export default function AttendeesScreen({ route, navigation }: Props) {
             key={f}
             style={[styles.filterBtn, filter === f && styles.filterActive]}
             onPress={() => setFilter(f as any)}
-            accessibilityLabel={`Filtrar: ${f}`}
           >
             <Text style={styles.filterText}>
               {f === "all"
